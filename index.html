@@ -1,11 +1,299 @@
-<h1> Welcome to my website! </h1>
-<p> hello people !!</p>
-<p> this is my first website </p>
-<p> I am learning HTML and CSS </p>
-<p> I am enjoying it so much </p>
-<h2> My Skills  </h2>
-<ul>
-    <li> HTML </li>
-    <li> CSS </li>
-    <li> JavaScript </li>
-    <li> Python </li>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control de Acceso - INTI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-md gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2.5 rounded-lg text-white font-black text-xl tracking-tighter">
+                INTI
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide">INSTITUTO NACIONAL TÉCNICO INDUSTRIAL</h1>
+                <p class="text-xs text-slate-400">Control de Accesos por Carnet QR</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-col items-center md:items-end bg-slate-800 px-5 py-2 rounded-xl border border-slate-700">
+            <div id="reloj-digital" class="text-xl font-mono font-bold text-emerald-400 tracking-wider">00:00:00 AM</div>
+            <div id="fecha-digital" class="text-[11px] text-slate-300 uppercase tracking-tight font-semibold mt-0.5">Cargando fecha...</div>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button id="btn-entrada" onclick="cambiarModo('ENTRADA')" class="bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 border-b-4 border-emerald-800 transition-all cursor-pointer">
+                    <span class="text-xl flex items-center gap-2"><i data-lucide="log-in"></i> ENTRADA</span>
+                </button>
+                <button id="btn-salida" onclick="cambiarModo('SALIDA')" class="bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md flex flex-col items-center justify-center gap-1 border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer">
+                    <span class="text-xl flex items-center gap-2"><i data-lucide="log-out"></i> SALIDA</span>
+                </button>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h3 class="text-gray-700 font-bold mb-3 flex items-center gap-2 text-sm">
+                    <i data-lucide="camera" class="text-blue-600"></i> Lector de Carnet QR (Cámara activa)
+                </h3>
+                
+                <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 mb-4 shadow-inner"></div>
+                
+                <div class="border-t pt-4">
+                    <label class="block text-gray-500 text-xs font-semibold mb-2">Ingreso manual alternativo (Ejem: INTI-001 al INTI-010):</label>
+                    <div class="flex gap-3">
+                        <input type="text" id="input-id" placeholder="Código de Carnet..." autofocus
+                            class="w-full bg-gray-50 border-2 border-gray-300 rounded-xl px-4 py-2 font-mono text-sm focus:outline-none focus:border-blue-500">
+                        <button onclick="procesarManual()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 rounded-xl shadow-md transition-colors text-sm flex items-center gap-2 cursor-pointer">
+                            Registrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="detalle-resultado" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col animate-fade-in">
+                <div class="bg-slate-50 px-6 py-2.5 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-gray-500 text-xs font-bold tracking-wider uppercase">Datos de la Credencial</h3>
+                    <span id="badge-status" class="text-xs font-bold px-2.5 py-1 rounded-full"></span>
+                </div>
+                
+                <div class="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                    <div class="w-28 h-32 bg-gray-200 rounded-xl border border-gray-300 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                        <img id="alumno-foto" src="" alt="Alumno" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="flex-1 w-full">
+                        <h2 id="alumno-nombre" class="text-2xl font-bold text-gray-800 leading-tight"></h2>
+                        
+                        <div class="mt-1 flex flex-wrap gap-2 items-center">
+                            <span id="alumno-grado" class="text-slate-600 font-medium text-sm"></span>
+                            <span id="alumno-especialidad" class="bg-blue-100 text-blue-800 font-bold text-xs px-2 py-0.5 rounded border border-blue-200"></span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mt-4 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs font-mono">
+                            <div>
+                                <span class="text-gray-400 block text-[10px] uppercase font-sans font-semibold">Fecha y Hora Registro</span>
+                                <span id="registro-hora" class="text-gray-800 font-bold text-sm"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 block text-[10px] uppercase font-sans font-semibold">Operación</span>
+                                <span id="registro-tipo" class="font-bold text-sm uppercase"></span>
+                            </div>
+                        </div>
+
+                        <div id="alerta-box" class="mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md shadow-sm"></div>
+                        
+                        <p class="text-xs text-gray-500 mt-3">
+                            <i data-lucide="phone" class="w-3.5 h-3.5 inline mr-1"></i><strong>Contacto Emergencia:</strong> <span id="alumno-tutor"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex-1 flex flex-col">
+                <h3 class="text-gray-800 font-bold text-md mb-4 flex items-center gap-2 border-b pb-2">
+                    <i data-lucide="list-ordered" class="text-blue-600"></i> Bitácora de Accesos (<span id="contador-logs">0</span>)
+                </h3>
+                
+                <div id="lista-historial" class="flex flex-col gap-3 overflow-y-auto max-h-[520px] pr-1 text-xs">
+                    <p id="historial-vacio" class="text-gray-400 italic text-center my-auto">Ningún carnet escaneado en esta sesión.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-500 text-xs text-center py-3 border-t border-slate-800 mt-auto">
+        &copy; 2026 INTI - Módulo de Verificación de Entradas y Salidas.
+    </footer>
+
+    <script>
+        // 1. RELOJ EN TIEMPO REAL
+        function actualizarReloj() {
+            const ahora = new Date();
+            
+            // Formatear Hora
+            let horas = ahora.getHours();
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'PM' : 'AM';
+            horas = horas % 12;
+            horas = horas ? horas : 12; // el número 0 debe ser 12
+            const horaCompleta = `${String(horas).padStart(2, '0')}:${minutos}:${segundos} ${ampm}`;
+            
+            // Formatear Fecha
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fechaCompleta = ahora.toLocaleDateString('es-ES', opcionesFecha);
+            
+            document.getElementById('reloj-digital').innerText = horaCompleta;
+            document.getElementById('fecha-digital').innerText = fechaCompleta;
+        }
+        setInterval(actualizarReloj, 1000); // Actualiza cada 1 segundo
+        actualizarReloj(); // Ejecución inicial inmediata
+
+        // 2. BASE DE DATOS LOCAL INTI (10 Alumnos con Especialidades Técnicas)
+        const bdEstudiantes = {
+            "INTI-001": { nombre: "Carlos Eduardo Martínez", grado: "2° Año", especialidad: "Desarrollo de Software", tutor: "Ana Gómez (Madre) - 7711-2233", foto: "https://images.unsplash.com/photo-1597549880878-493172a82fc2?w=150", alerta: "" },
+            "INTI-002": { nombre: "Sofía Beltrán Ramos", grado: "3° Año", especialidad: "Electrónica", tutor: "Luis Beltrán (Padre) - 7855-4411", foto: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150", alerta: "Retardo recurrente" },
+            "INTI-003": { nombre: "Diego Alejandro Arce", grado: "1° Año", especialidad: "Mecánica Automotriz", tutor: "María Arce (Madre) - 6100-2233", foto: "https://images.unsplash.com/photo-1603102842221-f6d6aa1fc6f3?w=150", alerta: "" },
+            "INTI-004": { nombre: "Valeria Alexandra Ruiz", grado: "2° Año", especialidad: "Electrotecnia", tutor: "Roberto Ruiz (Padre) - 7011-8899", foto: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150", alerta: "Reporte de conducta" },
+            "INTI-005": { nombre: "Mateo Nicolás Fuentes", grado: "3° Año", especialidad: "Desarrollo de Software", tutor: "Elena de Fuentes (Madre) - 7222-3344", foto: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150", alerta: "" },
+            "INTI-006": { nombre: "Lucía Fernanda Méndez", grado: "1° Año", especialidad: "Mecanizado Computarizado", tutor: "Pedro Méndez (Padre) - 7444-5566", foto: "https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150", alerta: "" },
+            "INTI-007": { nombre: "Santiago José Alvarado", grado: "2° Año", especialidad: "Sistemas Informáticos", tutor: "Laura Alvarado (Hermana) - 6555-9900", foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150", alerta: "" },
+            "INTI-008": { nombre: "Gabriela María Flores", grado: "3° Año", especialidad: "Diseño Gráfico Técnico", tutor: "Juan Flores (Abuelo) - 2255-8877", foto: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150", alerta: "Retiro solo no autorizado" },
+            "INTI-009": { nombre: "Emilio Arturo Peña", grado: "1° Año", especialidad: "Electrónica", tutor: "Carmen Peña (Madre) - 7111-4455", foto: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150", alerta: "" },
+            "INTI-010": { nombre: "Mariana Isabel Castro", grado: "2° Año", especialidad: "Mecánica Automotriz", tutor: "Jorge Castro (Padre) - 7999-0011", foto: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150", alerta: "" }
+        };
+
+        let historialAccesos = [];
+        let modoActivo = "ENTRADA";
+
+        function cambiarModo(modo) {
+            modoActivo = modo;
+            const btnEntrada = document.getElementById('btn-entrada');
+            const btnSalida = document.getElementById('btn-salida');
+            if (modo === 'ENTRADA') {
+                btnEntrada.className = "bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 border-b-4 border-emerald-800 transition-all cursor-pointer";
+                btnSalida.className = "bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md flex flex-col items-center justify-center gap-1 border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer";
+            } else {
+                btnSalida.className = "bg-blue-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 border-b-4 border-blue-800 transition-all cursor-pointer";
+                btnEntrada.className = "bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md flex flex-col items-center justify-center gap-1 border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer";
+            }
+        }
+
+        // 3. REGISTRAR EL ACCESO EN TIEMPO REAL CON LA HORA Y FECHA EXACTA
+        function registrarAcceso(idEstudiante) {
+            const id = idEstudiante.trim().toUpperCase();
+            const estudiante = bdEstudiantes[id];
+            
+            const divResultado = document.getElementById('detalle-resultado');
+            divResultado.classList.remove('hidden');
+
+            const ahora = new Date();
+            // Formato de hora exacta para el bloque del alumno escaneado
+            const horaString = ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            const fechaString = ahora.toLocaleDateString('es-ES', {day: '2-digit', month: '2-digit', year: 'numeric'});
+
+            if (estudiante) {
+                // Modificar la interfaz con los datos
+                document.getElementById('badge-status').className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800";
+                document.getElementById('badge-status').innerText = "VÁLIDO";
+                document.getElementById('alumno-foto').src = estudiante.foto;
+                document.getElementById('alumno-nombre').innerText = estudiante.nombre;
+                document.getElementById('alumno-grado').innerText = estudiante.grado + " - ";
+                document.getElementById('alumno-especialidad').innerText = estudiante.especialidad;
+                
+                // Mostrar la fecha del sistema y la hora exacta del escaneo en tiempo real
+                document.getElementById('registro-hora').innerText = `${fechaString} | ${horaString}`;
+                document.getElementById('registro-tipo').innerText = modoActivo;
+                
+                const tipoSpan = document.getElementById('registro-tipo');
+                tipoSpan.className = modoActivo === 'ENTRADA' ? 'text-emerald-600 font-bold' : 'text-blue-600 font-bold';
+
+                const alertaBox = document.getElementById('alerta-box');
+                if(estudiante.alerta !== "") {
+                    alertaBox.className = "mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md bg-amber-500 text-white block";
+                    alertaBox.innerText = `⚠️ ATENCIÓN: ${estudiante.alerta}`;
+                } else {
+                    alertaBox.className = "mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md bg-emerald-500 text-white block";
+                    alertaBox.innerText = "✓ ACCESO AUTORIZADO";
+                }
+                
+                document.getElementById('alumno-tutor').innerText = estudiante.tutor;
+
+                // AGREGAR A LA BITÁCORA EN TIEMPO REAL
+                historialAccesos.unshift({
+                    hora: horaString,
+                    nombre: estudiante.nombre,
+                    especialidad: estudiante.especialidad,
+                    tipo: modoActivo,
+                    alerta: estudiante.alerta
+                });
+                actualizarHistorialHTML();
+
+            } else {
+                // ID Incorrecto o no registrado
+                document.getElementById('badge-status').className = "text-xs font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-800";
+                document.getElementById('badge-status').innerText = "DESCONOCIDO";
+                document.getElementById('alumno-foto').src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                document.getElementById('alumno-nombre').innerText = "Código Incorrecto / No Encontrado";
+                document.getElementById('alumno-grado').innerText = "N/A";
+                document.getElementById('alumno-especialidad').innerText = "SIN MATRÍCULA";
+                document.getElementById('registro-hora').innerText = `${fechaString} | ${horaString}`;
+                
+                const alertaBox = document.getElementById('alerta-box');
+                alertaBox.className = "mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md bg-red-600 text-white block";
+                alertaBox.innerText = "ERROR: CREDENCIAL INVÁLIDA";
+                document.getElementById('alumno-tutor').innerText = "Ninguno";
+            }
+        }
+
+        function procesarManual() {
+            const input = document.getElementById('input-id');
+            if(input.value !== "") {
+                registrarAcceso(input.value);
+                input.value = "";
+                input.focus();
+            }
+        }
+
+        document.getElementById('input-id').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { procesarManual(); }
+        });
+
+        // 4. ACTUALIZAR LA BITÁCORA DEL PANEL DE ASISTENCIAS
+        function actualizarHistorialHTML() {
+            const lista = document.getElementById('lista-historial');
+            const vacio = document.getElementById('historial-vacio');
+            if(vacio) vacio.remove();
+
+            document.getElementById('contador-logs').innerText = historialAccesos.length;
+            lista.innerHTML = ""; 
+            
+            historialAccesos.forEach(reg => {
+                const colorBorde = reg.alerta ? 'border-amber-500 bg-amber-50' : (reg.tipo === 'ENTRADA' ? 'border-emerald-500 bg-emerald-50' : 'border-blue-500 bg-blue-50');
+                const badgeColor = reg.tipo === 'ENTRADA' ? 'bg-emerald-200 text-emerald-800' : 'bg-blue-200 text-blue-800';
+                
+                lista.innerHTML += `
+                    <div class="border-l-4 ${colorBorde} p-2.5 rounded-r-lg shadow-xs flex justify-between items-center transition-all">
+                        <div>
+                            <p class="font-bold text-gray-800">${reg.nombre}</p>
+                            <p class="text-blue-700 text-[10px] font-semibold">${reg.especialidad}</p>
+                        </div>
+                        <div class="text-right flex flex-col items-end gap-1">
+                            <span class="font-mono font-bold text-gray-700">${reg.hora}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${badgeColor}">${reg.tipo}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 5. INICIALIZADOR DE CÁMARA (Lector QR)
+        function onScanSuccess(decodedText) {
+            // Cuando lea el código QR del carnet del INTI
+            registrarAcceso(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // Escaneo continuo sin interrupción por errores de desenfoque
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 15, qrbox: 240 }, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
