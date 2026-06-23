@@ -32,6 +32,7 @@
                 <button id="tab-inicio" onclick="mostrarPanel('inicio')" class="px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm">Inicio</button>
                 <button id="tab-usuarios" onclick="mostrarPanel('usuarios')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm">Usuarios</button>
                 <button id="tab-reportes" onclick="mostrarPanel('reportes')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm">Reportes</button>
+                <button id="tab-horarios" onclick="mostrarPanel('horarios')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm">Horarios</button>
                 <button id="tab-alertas" onclick="mostrarPanel('alertas')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm">Alertas</button>
             </div>
             <p class="text-xs text-slate-500 mt-1">Seleccione una sección para ver el panel correspondiente.</p>
@@ -173,6 +174,22 @@
             </div>
         </section>
 
+        <section id="panel-horarios" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="clock" class="text-blue-600"></i> Horarios por Sección</h3>
+            <div class="flex gap-3 items-center mb-4">
+                <label class="text-xs text-slate-500">Seleccionar Sección:</label>
+                <select id="horario-secciones" class="bg-gray-50 border-2 border-gray-300 rounded-xl px-3 py-2 text-sm">
+                    <option value="">-- Seleccione --</option>
+                </select>
+                <button onclick="renderHorario()" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm">Cargar Horario</button>
+                <button onclick="imprimirHorario()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm">Imprimir Horario</button>
+                <button onclick="imprimirReporteSeccion()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm">Imprimir Reporte (Asistencia)</button>
+            </div>
+            <div id="horario-contenido" class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-sm">
+                <p class="text-slate-500 text-xs">Seleccione una sección para ver su horario.</p>
+            </div>
+        </section>
+
         <section id="panel-reportes" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="bar-chart-2" class="text-blue-600"></i> Reportes</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -209,6 +226,20 @@
         &copy; 2026 INTI - Módulo de Verificación de Entradas y Salidas.
     </footer>
 
+    <!-- Modal de contraseña para Reportes -->
+    <div id="password-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md border border-gray-200">
+            <h4 class="font-bold text-gray-800 mb-2">Acceso Restringido — Ingrese Contraseña</h4>
+            <p class="text-xs text-slate-500 mb-4">Ingrese la contraseña para acceder al apartado de Reportes.</p>
+            <input id="password-input" type="password" placeholder="Contraseña" class="w-full bg-gray-50 border-2 border-gray-300 rounded-xl px-4 py-2 text-sm mb-4">
+            <div class="flex justify-end gap-3">
+                <button onclick="cerrarPasswordModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700">Cancelar</button>
+                <button onclick="verificarPassword()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white">Entrar</button>
+            </div>
+            <p id="password-error" class="text-xs text-red-600 mt-3 hidden">Contraseña incorrecta.</p>
+        </div>
+    </div>
+
     <script>
         function actualizarReloj() {
             const ahora = new Date();
@@ -242,6 +273,9 @@
 
         let historialAccesos = [];
         let modoActivo = "ENTRADA";
+        // Control de acceso para Reportes (contraseña local - cambiar a una más segura en producción)
+        const adminPassword = 'INTIadmin2026';
+        let reportsUnlocked = false;
 
         function cambiarModo(modo) {
             modoActivo = modo;
@@ -257,14 +291,24 @@
         }
 
         function mostrarPanel(panel) {
-            const panels = ['inicio', 'usuarios', 'reportes', 'alertas'];
+            // Si intentan abrir reportes y no están desbloqueados, mostrar modal de contraseña
+            if (panel === 'reportes' && !reportsUnlocked) {
+                document.getElementById('password-modal').classList.remove('hidden');
+                document.getElementById('password-input').value = '';
+                document.getElementById('password-input').focus();
+                return;
+            }
+            const panels = ['inicio', 'usuarios', 'horarios', 'reportes', 'alertas'];
             panels.forEach(p => {
-                document.getElementById(`panel-${p}`).classList.toggle('hidden', p !== panel);
-                document.getElementById(`tab-${p}`).className = p === panel ? 'px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm' : 'px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm';
+                const panelEl = document.getElementById(`panel-${p}`);
+                const tabEl = document.getElementById(`tab-${p}`);
+                if (panelEl) panelEl.classList.toggle('hidden', p !== panel);
+                if (tabEl) tabEl.className = p === panel ? 'px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm' : 'px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm';
             });
             if (panel === 'usuarios') cargarUsuarios();
             if (panel === 'reportes') actualizarReportes();
             if (panel === 'alertas') cargarAlertas();
+            if (panel === 'horarios') cargarHorarios();
         }
 
         function registrarAcceso(idEstudiante) {
@@ -452,6 +496,94 @@
                     </div>
                 `;
             });
+        }
+
+        // --- Funciones de seguridad y horarios ---
+        function verificarPassword() {
+            const val = document.getElementById('password-input').value;
+            const err = document.getElementById('password-error');
+            if (val === adminPassword) {
+                reportsUnlocked = true;
+                err.classList.add('hidden');
+                document.getElementById('password-modal').classList.add('hidden');
+                mostrarPanel('reportes');
+            } else {
+                err.classList.remove('hidden');
+            }
+        }
+
+        function cerrarPasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+            document.getElementById('password-error').classList.add('hidden');
+        }
+
+        // Datos de horarios (se generan dinámicamente si no existen)
+        const horarios = {};
+
+        function cargarHorarios() {
+            const select = document.getElementById('horario-secciones');
+            select.innerHTML = '<option value="">-- Seleccione --</option>';
+            const secciones = new Set(Object.values(bdEstudiantes).map(e => e.seccion).filter(s => s && s !== '-'));
+            secciones.forEach(sec => {
+                select.innerHTML += `<option value="${sec}">${sec}</option>`;
+                if (!horarios[sec]) {
+                    // Crear un horario de ejemplo con franjas por día
+                    horarios[sec] = [
+                        { dia: 'Lunes', bloques: ['08:00-09:30 - Materia A', '09:40-11:10 - Materia B'] },
+                        { dia: 'Martes', bloques: ['08:00-09:30 - Materia C', '09:40-11:10 - Materia D'] },
+                        { dia: 'Miércoles', bloques: ['08:00-09:30 - Materia A', '09:40-11:10 - Materia E'] },
+                        { dia: 'Jueves', bloques: ['08:00-09:30 - Materia B', '09:40-11:10 - Materia C'] },
+                        { dia: 'Viernes', bloques: ['08:00-09:30 - Materia D', '09:40-11:10 - Materia E'] }
+                    ];
+                }
+            });
+        }
+
+        function renderHorario() {
+            const sel = document.getElementById('horario-secciones').value;
+            const cont = document.getElementById('horario-contenido');
+            if (!sel) {
+                cont.innerHTML = '<p class="text-slate-500 text-xs">Seleccione una sección para ver su horario.</p>';
+                return;
+            }
+            const lista = horarios[sel] || [];
+            let html = `<h4 class="font-semibold text-slate-700 mb-2">Horario — Sección ${sel}</h4>`;
+            html += '<div class="grid gap-3">';
+            lista.forEach(d => {
+                html += `<div class="p-3 rounded-xl border border-slate-200 bg-white"><p class="font-semibold text-sm">${d.dia}</p>`;
+                d.bloques.forEach(b => { html += `<p class="text-[13px] text-slate-600">${b}</p>`; });
+                html += '</div>';
+            });
+            html += '</div>';
+            cont.innerHTML = html;
+        }
+
+        function imprimirHorario() {
+            const sel = document.getElementById('horario-secciones').value;
+            if (!sel) return alert('Seleccione una sección para imprimir.');
+            const contenido = document.getElementById('horario-contenido').innerHTML;
+            const w = window.open('', '_blank');
+            w.document.write(`<html><head><title>Horario ${sel}</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:20px}</style></head><body><h2>Horario — Sección ${sel}</h2>${contenido}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 300);
+        }
+
+        function imprimirReporteSeccion() {
+            const sel = document.getElementById('horario-secciones').value;
+            if (!sel) return alert('Seleccione una sección para imprimir el reporte.');
+            const registros = historialAccesos.filter(r => r.seccion === sel);
+            const w = window.open('', '_blank');
+            let html = `<html><head><title>Reporte ${sel}</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px;text-align:left}</style></head><body><h2>Reporte de Asistencia — Sección ${sel}</h2>`;
+            if (!registros.length) html += '<p>No hay registros para esta sección.</p>';
+            else {
+                html += '<table><thead><tr><th>Hora</th><th>Nombre</th><th>Tipo</th><th>Origen</th></tr></thead><tbody>';
+                registros.forEach(r => { html += `<tr><td>${r.hora}</td><td>${r.nombre}</td><td>${r.tipo}</td><td>${r.origen}</td></tr>`; });
+                html += '</tbody></table>';
+            }
+            html += '</body></html>';
+            w.document.write(html);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 300);
         }
 
         function onScanSuccess(decodedText) {
