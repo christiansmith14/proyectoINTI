@@ -1,9 +1,11 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Control de Acceso - INTI</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -290,6 +292,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Credenciales de conexión provistas por el SDK del proyecto Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCAPM41CCKo2H4eTXoWtFNR8g-RKCqqTm8",
             authDomain: "sistema-de-control-ing-y-salid.firebaseapp.com",
@@ -300,9 +303,13 @@
             appId: "1:426232560902:web:84d0e50454446beffe3287"
         };
 
+        // Instanciación del servicio
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        /**
+         * Realiza una consulta asíncrona única para buscar un estudiante según su NIE.
+         */
         window.buscarEstudianteEnFirebase = async function(nie) {
             const dbRef = ref(db);
             try {
@@ -312,6 +319,9 @@
             } catch (error) { return null; }
         };
 
+        /**
+         * Guarda o actualiza los datos estructurados de un alumno bajo la ruta alumnos/{nie}.
+         */
         window.guardarEstudianteEnFirebase = async function(nie, datosAlumno) {
             try {
                 await set(ref(db, `alumnos/${nie}`), datosAlumno);
@@ -319,11 +329,18 @@
             } catch (error) { return false; }
         };
 
+        /**
+         * Almacena de forma cronológica (generando hashes únicos mediante push) cada registro de entrada/salida.
+         */
         window.registrarAccesoEnBitacoraFirebase = function(registro) {
             const bitacoraRef = ref(db, 'bitacora');
             push(bitacoraRef, registro).catch(err => console.error(err));
         };
 
+        /**
+         * Evento en tiempo real (onValue): Se dispara automáticamente cada vez que la base de datos de alumnos sufre un cambio.
+         * Renderiza la tabla de alumnos del "Panel Usuarios".
+         */
         onValue(ref(db, 'alumnos'), (snapshot) => {
             const tabla = document.getElementById('tabla-usuarios');
             if (!snapshot.exists()) {
@@ -331,6 +348,7 @@
                 return;
             }
             tabla.innerHTML = '';
+            // Recorrer los nodos e inyectar el HTML de las filas
             snapshot.forEach((childSnapshot) => {
                 const nie = childSnapshot.key;
                 const alum = childSnapshot.val();
@@ -348,12 +366,16 @@
     </script>
 
     <script>
-        let historialAccesos = [];
-        let modoActivo = "ENTRADA";
-        let temporizadorAlerta;
-        let escaneoBloqueado = false;
-        let rolUsuarioActual = "";
+        // Variables globales del estado de la aplicación
+        let historialAccesos = [];       // Guarda los registros locales acumulados en la sesión actual
+        let modoActivo = "ENTRADA";      // Controla el flujo actual: "ENTRADA" o "SALIDA"
+        let temporizadorAlerta;          // ID del timeout para ocultar el modal de alertas centralizadas
+        let escaneoBloqueado = false;    // Antirebote para evitar escaneos duplicados en milisegundos
+        let rolUsuarioActual = "";       // Almacena el rol autenticado: "director" u "operador"
 
+        /**
+         * Valida el acceso local comparando las cadenas introducidas con las claves cableadas (hardcoded).
+         */
         function procesarLogin() {
             const userIn = document.getElementById('login-usuario').value.trim().toLowerCase();
             const passIn = document.getElementById('login-password').value;
@@ -368,10 +390,13 @@
                 rolUsuarioActual = "operador";
                 inicializarSesiónAutorizada();
             } else {
-                errorBox.classList.remove('hidden');
+                errorBox.classList.remove('hidden'); // Muestra mensaje si los datos están errados
             }
         }
 
+        /**
+         * Configura el comportamiento visual y restricciones de la interfaz tras el login exitoso.
+         */
         function inicializarSesiónAutorizada() {
             document.getElementById('pantalla-login').classList.add('hidden');
             document.getElementById('interfaz-sistema').classList.remove('hidden');
@@ -381,6 +406,7 @@
                 ? "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-slate-900 uppercase"
                 : "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white uppercase";
 
+            // Si el rol es 'operador', restringe el acceso ocultando los elementos marcados con la clase VISTA-DIRECTOR
             const elementosDirector = document.querySelectorAll('.VISTA-DIRECTOR');
             elementosDirector.forEach(el => {
                 if (rolUsuarioActual === "operador") {
@@ -391,9 +417,12 @@
             });
 
             mostrarPanel('inicio');
-            if (window.lucide) lucide.createIcons();
+            if (window.lucide) lucide.createIcons(); // Re-renderiza los iconos cargados vectorialmente
         }
 
+        /**
+         * Blanquea credenciales y oculta la app para forzar el retorno a la tarjeta de login.
+         */
         function cerrarSesion() {
             rolUsuarioActual = "";
             document.getElementById('login-usuario').value = "";
@@ -402,6 +431,9 @@
             document.getElementById('pantalla-login').classList.remove('hidden');
         }
 
+        /**
+         * Maneja el reloj digital y el formato de fecha del header mediante intervalos.
+         */
         function actualizarReloj() {
             const ahora = new Date();
             let horas = ahora.getHours();
@@ -409,15 +441,19 @@
             const segundos = String(ahora.getSeconds()).padStart(2, '0');
             const ampm = horas >= 12 ? 'PM' : 'AM';
             horas = horas % 12;
-            horas = horas ? horas : 12;
+            horas = horas ? horas : 12; // Formato de 12 horas
             document.getElementById('reloj-digital').innerText = `${String(horas).padStart(2, '0')}:${minutos}:${segundos} ${ampm}`;
             document.getElementById('fecha-digital').innerText = ahora.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
+        /**
+         * Listener de ciclo de vida del DOM. Inicializa componentes críticos (Cámara y Reloj).
+         */
         window.addEventListener('DOMContentLoaded', () => {
             actualizarReloj();
-            setInterval(actualizarReloj, 1000);
+            setInterval(actualizarReloj, 1000); // Actualiza cada segundo
 
+            // Permite loguearse presionando la tecla 'Enter' en el campo de contraseña
             const inputPassword = document.getElementById('login-password');
             if (inputPassword) {
                 inputPassword.addEventListener('keyup', (e) => {
@@ -425,10 +461,12 @@
                 });
             }
 
+            // Inicialización de la librería de escaneo de códigos QR mediante WebRTC (Usa la cámara trasera/principal por defecto)
             try {
                 if (typeof Html5QrcodeScanner !== 'undefined') {
                     const scanner = new Html5QrcodeScanner('reader', { fps: 15, qrbox: 240 }, false);
                     scanner.render((texto) => {
+                        // Solo procesa códigos QR si la pantalla del login ya se ha superado
                         if (!document.getElementById('interfaz-sistema').classList.contains('hidden')) {
                             procesarNIE(texto.trim());
                         }
@@ -441,6 +479,9 @@
             if (window.lucide) lucide.createIcons();
         });
 
+        /**
+         * Cambia de manera visual y de lógica el comportamiento de la bitácora activa (Entrada / Salida).
+         */
         function cambiarModo(modo) {
             modoActivo = modo;
             document.getElementById('btn-entrada').className = modo === 'ENTRADA'
@@ -451,7 +492,11 @@
                 : 'bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer';
         }
 
+        /**
+         * Sistema Single Page Application (SPA) manual: oculta y muestra secciones alternando clases CSS.
+         */
         function mostrarPanel(panel) {
+            // Un operador no puede burlar el sistema modificando la vista de usuarios. Se fuerza el retorno al inicio.
             if (rolUsuarioActual === 'operador' && panel === 'usuarios') {
                 panel = 'inicio';
             }
@@ -469,6 +514,7 @@
                 document.querySelectorAll('.VISTA-DIRECTOR').forEach(el => el.classList.add('hidden'));
             }
 
+            // Forzar actualización métrica si entra a las pestañas de reportes o incidencias
             if (panel === 'reportes' || panel === 'alertas') {
                 typeof actualizarReportes === 'function' && actualizarReportes();
             }
@@ -478,11 +524,16 @@
             } catch (e) {}
         }
 
+        /**
+         * Motor de Reglas de Horarios: Determina si el alumno comete una infracción horaria institucional.
+         * Límite Entrada: 7:00 AM (420 minutos desde la medianoche).
+         * Límite Salida: 4:00 PM (960 minutos desde la medianoche).
+         */
         function evaluarIncidenciaHoraria(tipoOperacion) {
             const ahora = new Date();
             const tiempoEnMinutos = (ahora.getHours() * 60) + ahora.getMinutes();
-            const horaLimiteEntrada = 7 * 60;
-            const horaOficialSalidaTarde = 16 * 60;
+            const horaLimiteEntrada = 7 * 60; // 07:00 AM
+            const horaOficialSalidaTarde = 16 * 60; // 04:00 PM
 
             if (tipoOperacion === 'ENTRADA') {
                 if (tiempoEnMinutos > horaLimiteEntrada) return 'ENTRADA_TARDIA';
@@ -492,21 +543,24 @@
             return 'NORMAL';
         }
 
+        /**
+         * Orquestador principal del flujo del carnet.
+         */
         async function procesarNIE(nie) {
             if (!nie || escaneoBloqueado) return;
 
             document.getElementById('modal-autoregistro').classList.add('hidden');
 
+            // Intenta buscar el NIE en Firebase de manera asíncrona
             const alumno = await window.buscarEstudianteEnFirebase(nie);
             if (alumno) {
-                escaneoBloqueado = true;
+                escaneoBloqueado = true; // Bloquea escaneos durante 3 segundos para evitar rebotes
                 if (typeof ejecutarAsistencia === 'function') {
                     ejecutarAsistencia(nie, alumno);
-                } else {
-                    console.log('Datos de asistencia listos para procesar:', nie, alumno);
                 }
                 setTimeout(() => { escaneoBloqueado = false; }, 3000);
             } else {
+                // Si el alumno no existe en la base de datos, levanta el panel de registro express automático
                 document.getElementById('reg-nie').value = nie;
                 document.getElementById('reg-nombre').value = '';
                 document.getElementById('reg-especialidad').value = '';
@@ -515,6 +569,9 @@
             }
         }
 
+        /**
+         * Ejecuta el procesamiento a través de los valores capturados del input manual.
+         */
         function procesarManual() {
             const input = document.getElementById('input-id');
             if (input.value.trim() !== '') {
@@ -528,19 +585,22 @@
             document.getElementById('modal-autoregistro').classList.add('hidden');
         }
 
+        /**
+         * Toma los datos capturados en el panel de autoregistro, los sube a Firebase y ejecuta la asistencia de inmediato.
+         */
         async function guardarNuevoEstudianteBD() {
             const nie = document.getElementById('reg-nie').value.trim();
             const nombre = document.getElementById('reg-nombre').value.trim();
             const grado = document.getElementById('reg-ano').value;
             const specialtyInput = document.getElementById('reg-especialidad').value.trim();
 
-            if (!nombre || !specialtyInput) return;
+            if (!nombre || !specialtyInput) return; // Validación básica de campos requeridos
 
             const nuevoAlumno = {
                 nombre: nombre,
                 grado: grado,
                 especialidad: specialtyInput,
-                correo: `${nie}@inti.edu.sv`
+                correo: `${nie}@inti.edu.sv` // Genera el correo institucional automático según su código
             };
 
             const guardadoExitoso = await window.guardarEstudianteEnFirebase(nie, nuevoAlumno);
@@ -553,6 +613,9 @@
             }
         }
 
+        /**
+         * Registra y genera todos los efectos visuales y lógicos derivados de un escaneo/procesamiento válido.
+         */
         function ejecutarAsistencia(nie, estudiante) {
             const divResultado = document.getElementById('detalle-resultado');
             divResultado.classList.remove('hidden');
@@ -564,6 +627,7 @@
             const estadoHorario = evaluarIncidenciaHoraria(modoActivo);
             const esIncidencia = estadoHorario !== 'NORMAL';
 
+            // Crea el objeto del registro estructurado listo para enviarse
             const nuevoRegistro = {
                 fecha: fechaString,
                 hora: horaString,
@@ -577,6 +641,7 @@
                 correo: estudiante.correo
             };
 
+            // Inyección dinámica de textos y clases en la tarjeta informativa de resultado
             document.getElementById('badge-status').className = esIncidencia
                 ? 'text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 animate-pulse'
                 : 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800';
@@ -590,6 +655,7 @@
             document.getElementById('registro-tipo').innerText = modoActivo;
             document.getElementById('registro-tipo').className = modoActivo === 'ENTRADA' ? 'text-emerald-600 font-bold' : 'text-blue-600 font-bold';
 
+            // Lógica de Alertas Visuales Críticas
             const alertaBox = document.getElementById('alerta-box');
             if (estadoHorario === 'SALIDA_ANTICIPADA') {
                 alertaBox.className = 'mt-4 text-center font-black py-2.5 px-4 rounded-xl text-md bg-red-600 text-white shadow-md block';
@@ -604,16 +670,21 @@
                 alertaBox.innerText = '✓ ACCESO AUTORIZADO';
             }
 
+            // Agrega el elemento al inicio del array local y actualiza las vistas locales
             historialAccesos.unshift(nuevoRegistro);
             actualizarHistorialHTML();
 
+            // Sube de forma asíncrona el registro al histórico global en Firebase Realtime Database
             if (typeof window.registrarAccesoEnBitacoraFirebase === 'function') {
                 window.registrarAccesoEnBitacoraFirebase(nuevoRegistro);
             }
         }
 
+        /**
+         * Dispara una ventana modal gigante con un temporizador automático de cierre (3 segundos).
+         */
         function lanzarAlertaCentralAutomatica(titulo, estudiante, detalles, colorTexto, colorIconoBg) {
-            clearTimeout(temporizadorAlerta);
+            clearTimeout(temporizadorAlerta); // Resetea cualquier alerta previa para evitar solapamientos catastróficos
 
             const modal = document.getElementById('modal-alerta-central');
             const iconoBox = document.getElementById('alerta-central-icono');
@@ -639,6 +710,9 @@
             }, 3000);
         }
 
+        /**
+         * Renderiza dinámicamente el feed visual de la Bitácora Reciente lateral del menú de inicio.
+         */
         function actualizarHistorialHTML() {
             const lista = document.getElementById('lista-historial');
             document.getElementById('contador-logs').innerText = historialAccesos.length;
@@ -680,6 +754,10 @@
             });
         }
 
+        /**
+         * Re-calcula los valores métricos globales basándose en filtrados rápidos del arreglo local.
+         * Renderiza además la tabla del panel histórico de incidencias.
+         */
         function actualizarReportes() {
             document.getElementById('reporte-entradas').innerText = historialAccesos.filter(r => r.tipo === 'ENTRADA').length;
             document.getElementById('reporte-salidas').innerText = historialAccesos.filter(r => r.tipo === 'SALIDA').length;
@@ -711,12 +789,17 @@
             });
         }
 
+        /**
+         * Agrupa los registros locales mediante el método Array.prototype.reduce() separándolos por año/sección.
+         * Renderiza un bloque HTML optimizado para imprimir con el diálogo nativo del navegador (window.print).
+         */
         function imprimirReportePorSeccion() {
             if (historialAccesos.length === 0) {
                 alert('No hay registros para imprimir.');
                 return;
             }
 
+            // Agrupación mágica por Sección
             const seccionesAgrupadas = historialAccesos.reduce((grupos, registro) => {
                 const nombreSeccion = `${registro.grado} - ${registro.especialidad}`;
                 if (!grupos[nombreSeccion]) grupos[nombreSeccion] = [];
@@ -735,6 +818,7 @@
                 </div>
             `;
 
+            // Bucle anidado para construir las tablas de impresión por sección
             Object.entries(seccionesAgrupadas).forEach(([seccion, registros]) => {
                 contenidoHTML += `
                     <div class="mb-5 border border-slate-200 rounded-xl overflow-hidden">
@@ -781,8 +865,10 @@
 
             contenidoPreview.innerHTML = contenidoHTML;
             previewBox.classList.remove('hidden');
-            previewBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            previewBox.scrollIntoView({ behavior: 'smooth', block: 'start' }); // Scroll elegante hacia la vista previa
         }
     </script>
 </body>
 </html>
+
+```
