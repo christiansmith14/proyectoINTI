@@ -4,394 +4,785 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Control de Acceso - INTI</title>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-
-    <style>
-        /* ==========================================================================
-           1. ESTILOS GLOBALES Y PALETA DE COLORES (VERDE Y AMARILLO INSTITUCIONAL)
-           ========================================================================== */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        }
-
-        h1, h2 {
-            color: #00563B; /* Verde principal */
-            text-align: center;
-        }
-
-        /* Enfoque de dos columnas: Izquierda Escáner, Derecha Reportes */
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard { grid-template-columns: 1fr; }
-        }
-
-        /* ==========================================================================
-           2. ESTILOS DEL ESCÁNER QR
-           ========================================================================== */
-        .scanner-section {
-            background: #fafafa;
-            padding: 20px;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-            text-align: center;
-        }
-
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        /* ==========================================================================
-           3. ESTILOS DE LAS ALERTAS PERSONALIZADAS (CENTRADAS Y TEMPORALES)
-           ========================================================================== */
-        .custom-alert {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%); /* Centrado absoluto exacto */
-            padding: 20px 40px;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 9999;
-            display: none; /* Oculto por defecto */
-            text-align: center;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* Variaciones de color para la alerta */
-        .alert-success { background-color: #00563B; border: 2px solid #FFD700; } /* Verde con borde Amarillo */
-        .alert-error { background-color: #d9534f; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -60%); }
-            to { opacity: 1; transform: translate(-50%, -50%); }
-        }
-
-        /* ==========================================================================
-           4. ESTILOS DEL APARTADO DE REPORTES Y TABLA
-           ========================================================================== */
-        .report-section {
-            background: #ffffff;
-        }
-
-        .header-reportes {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        /* Botón de Impresión Estilizado */
-        .btn-imprimir {
-            background-color: #FFD700; /* Amarillo Institucional */
-            color: #00563B;            /* Texto Verde para contraste */
-            border: none;
-            padding: 10px 20px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .btn-imprimir:hover {
-            background-color: #e6c200;
-            transform: translateY(-1px);
-        }
-
-        /* Tabla de registros */
-        .table-responsive {
-            max-height: 450px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eeeeee;
-        }
-
-        th {
-            background-color: #00563B;
-            color: white;
-            position: sticky;
-            top: 0; /* Mantiene el encabezado fijo al hacer scroll */
-        }
-
-        tr:nth-child(even) { background-color: #f9f9f9; }
-
-        /* ==========================================================================
-           5. REGLAS DE IMPRESIÓN (MEDIOS FÍSICOS / PDF)
-           ========================================================================== */
-        @media print {
-            /* Ocultamos absolutamente todo lo que no sea el reporte */
-            body, .container, .dashboard {
-                background: white;
-                box-shadow: none;
-                padding: 0;
-                margin: 0;
-            }
-            /* Escondemos el escáner, el botón de imprimir y los encabezados de la app */
-            .scanner-section, .btn-imprimir, h1, .header-reportes h2 {
-                display: none !important;
-            }
-            /* Forzamos a la sección de reportes a ocupar todo el ancho de la hoja */
-            .report-section {
-                width: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
-            .table-responsive {
-                max-height: none; /* Quitamos el scroll para que se impriman todas las filas */
-                overflow: visible;
-            }
-            table {
-                width: 100%;
-                border: 1px solid #000;
-            }
-            th {
-                background-color: #00563B !important;
-                color: black !important; /* Algunos navegadores bloquean fondo a color al imprimir */
-            }
-        }
-    </style>
 </head>
-<body>
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col relative">
 
-    <div id="alertaPersonalizada" class="custom-alert"></div>
-
-    <div class="container">
-        <h1>Instituto Nacional Técnico Industrial (INTI)</h1>
-        <p style="text-align:center; color: #666;">Control de Asistencia de Estudiantes</p>
-        
-        <div class="dashboard">
+    <div id="pantalla-login" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-950 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-emerald-700/20 transform transition-all">
             
-            <div class="scanner-section">
-                <h2>Escáner de Credenciales</h2>
-                <div id="reader"></div>
+            <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 p-8 text-center relative">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400/20 rounded-full blur-xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-yellow-300/10 rounded-full blur-lg"></div>
+                
+                <div class="bg-yellow-400 text-emerald-950 w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg mb-3 tracking-tighter">
+                    INTI
+                </div>
+                <h2 class="text-white text-xl font-black tracking-wide uppercase">Control de Accesos</h2>
+                <p class="text-emerald-100 text-xs mt-1 font-medium">Identifíquese para ingresar al sistema</p>
             </div>
 
-            <div class="report-section">
-                <div class="header-reportes">
-                    <h2>Registros de Hoy</h2>
-                    <button class="btn-imprimir" onclick="imprimirReporte()">
-                        🖨️ Imprimir Reporte
+            <div class="p-8">
+                <div id="login-error" class="hidden bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl mb-4 text-xs font-bold text-red-700 flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                    <span>Usuario o contraseña incorrectos.</span>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1.5">Usuario institucional</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-emerald-600">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="login-usuario" placeholder="Ej: director o operador" class="w-full bg-slate-50 border-2 border-slate-200 focus:border-yellow-400 focus:bg-white rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium transition-all focus:outline-none text-slate-800">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1.5">Contraseña de acceso</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-emerald-600">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                            </span>
+                            <input type="password" id="login-password" placeholder="••••••••" class="w-full bg-slate-50 border-2 border-slate-200 focus:border-yellow-400 focus:bg-white rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium transition-all focus:outline-none text-slate-800">
+                        </div>
+                    </div>
+
+                    <button onclick="procesarLogin()" class="w-full bg-yellow-400 hover:bg-yellow-500 text-emerald-950 font-black py-3 rounded-xl shadow-md border-b-4 border-yellow-600 transition-all cursor-pointer text-sm uppercase tracking-wider mt-2 flex items-center justify-center gap-2">
+                        Ingresar al Sistema <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </div>
-
-                <div class="table-responsive">
-                    <table id="tablaAsistencia">
-                        <thead>
-                            <tr>
-                                <th>NIE / Código</th>
-                                <th>Nombre</th>
-                                <th>Especialidad</th>
-                                <th>Año</th>
-                                <th>Hora de Entrada</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cuerpoTabla">
-                            </tbody>
-                    </table>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Instituto Nacional Técnico Industrial · 2026</p>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <script type="module">
-        // Importación de módulos oficiales del SDK de Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    <div id="interfaz-sistema" class="hidden flex-1 flex flex-col">
 
-        // CONFIGURACIÓN DE TU PROYECTO FIREBASE (Coloca aquí tus llaves actuales)
+        <div id="modal-alerta-central" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs transition-all">
+            <div class="bg-white rounded-2xl shadow-2xl border-2 p-8 max-w-md w-full mx-4 text-center transform scale-100 transition-transform">
+                <div id="alerta-central-icono" class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 shadow-inner"></div>
+                <h3 id="alerta-central-titulo" class="text-2xl font-black uppercase tracking-wide mb-1"></h3>
+                <p id="alerta-central-estudiante" class="text-slate-800 font-bold text-md mb-1"></p>
+                <p id="alerta-central-detalles" class="text-slate-500 text-xs font-mono mb-2"></p>
+                <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-4">El sistema continuará escaneando automáticamente...</p>
+            </div>
+        </div>
+
+        <header class="bg-slate-900 text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-md gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 p-2.5 rounded-lg text-white font-black text-xl tracking-tighter">INTI</div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">INSTITUTO NACIONAL TÉCNICO INDUSTRIAL</h1>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <p class="text-xs text-slate-400">Control de Accesos Automático</p>
+                        <span id="sesion-rol-badge" class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-slate-900 uppercase"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col items-center md:items-end bg-slate-800 px-5 py-2 rounded-xl border border-slate-700">
+                    <div id="reloj-digital" class="text-xl font-mono font-bold text-emerald-400 tracking-wider">00:00:00 AM</div>
+                    <div id="fecha-digital" class="text-[11px] text-slate-300 uppercase tracking-tight font-semibold mt-0.5">Cargando fecha...</div>
+                </div>
+                <button onclick="cerrarSesion()" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white p-2.5 rounded-xl transition-all cursor-pointer shadow-sm border border-red-500/30" title="Cerrar Sesión">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 max-w-7xl mx-auto w-full grid grid-cols-1 gap-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
+                <div class="flex flex-wrap gap-3">
+                    <button id="tab-inicio" onclick="mostrarPanel('inicio')" class="px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm cursor-pointer">Inicio</button>
+                    <button id="tab-usuarios" onclick="mostrarPanel('usuarios')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm cursor-pointer VISTA-DIRECTOR">Usuarios</button>
+                    <button id="tab-reportes" onclick="mostrarPanel('reportes')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm cursor-pointer VISTA-DIRECTOR">Reportes</button>
+                    <button id="tab-alertas" onclick="mostrarPanel('alertas')" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm cursor-pointer VISTA-DIRECTOR">Alertas</button>
+                </div>
+            </div>
+
+            <section id="panel-inicio" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 flex flex-col gap-6">
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                        <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                            <div>
+                                <h3 class="text-gray-700 font-bold mb-1 flex items-center gap-2 text-sm">
+                                    <i data-lucide="camera" class="text-emerald-600"></i> Lector de Carnet QR
+                                </h3>
+                                <p class="text-xs text-slate-500">Escanee el carnet o digite el código de forma manual.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="btn-entrada" onclick="cambiarModo('ENTRADA')" class="bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg border-b-4 border-emerald-800 transition-all cursor-pointer">ENTRADA</button>
+                                <button id="btn-salida" onclick="cambiarModo('SALIDA')" class="bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer">SALIDA</button>
+                            </div>
+                        </div>
+
+                        <div id="reader" class="w-full max-w-full mx-auto overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 mb-4 mt-4 shadow-inner min-h-[280px]"></div>
+
+                        <div class="border-t pt-4">
+                            <label class="block text-gray-500 text-xs font-semibold mb-2">Ingreso manual alternativo:</label>
+                            <div class="flex gap-3">
+                                <input type="text" id="input-id" placeholder="Ej: 2936619" autofocus class="w-full bg-gray-50 border-2 border-gray-300 rounded-xl px-4 py-2 font-mono text-sm focus:outline-none focus:border-emerald-500">
+                                <button onclick="procesarManual()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 rounded-xl shadow-md transition-colors text-sm cursor-pointer">Procesar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-autoregistro" class="hidden bg-amber-50 border-2 border-amber-300 p-6 rounded-2xl shadow-md">
+                        <div class="flex items-center gap-2 text-amber-800 font-bold mb-2">
+                            <i data-lucide="user-plus"></i>
+                            <h4>¡NIE Nuevo Detectado! Registrar Estudiante</h4>
+                        </div>
+                        <p class="text-xs text-amber-700 mb-4">Este carnet no está en la base de datos de Firebase. Ingrese los datos del alumno una única vez para guardarlo.</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600 block mb-1">NIE / Código</label>
+                                <input type="text" id="reg-nie" readonly class="w-full bg-gray-200 border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600 block mb-1">Nombre Completo</label>
+                                <input type="text" id="reg-nombre" placeholder="Nombre del Alumno" class="w-full bg-white border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600 block mb-1">Año de Estudio</label>
+                                <select id="reg-ano" class="w-full bg-white border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                                    <option value="1° Año">1° Año</option>
+                                    <option value="2° Año">2° Año</option>
+                                    <option value="3° Año">3° Año</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-600 block mb-1">Especialidad / Sección</label>
+                                <input type="text" id="reg-especialidad" placeholder="Ej: BTV DS -A-" class="w-full bg-white border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            </div>
+                            <div class="sm:col-span-2 flex justify-end gap-3 mt-2">
+                                <button onclick="cancelarRegistro()" class="bg-gray-300 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">Cancelar</button>
+                                <button onclick="guardarNuevoEstudianteBD()" class="bg-amber-600 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md cursor-pointer">Guardar y Procesar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="detalle-resultado" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-slate-50 px-6 py-2.5 border-b border-gray-200 flex justify-between items-center">
+                            <h3 class="text-gray-500 text-xs font-bold tracking-wider uppercase">Resultado del Escaneo</h3>
+                            <span id="badge-status" class="text-xs font-bold px-2.5 py-1 rounded-full"></span>
+                        </div>
+                        <div class="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                            <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 shadow-inner border border-emerald-100">
+                                <i data-lucide="user" class="w-12 h-12"></i>
+                            </div>
+                            <div class="flex-1 w-full">
+                                <h2 id="alumno-nombre" class="text-2xl font-bold text-gray-800 leading-tight"></h2>
+                                <div class="mt-1 flex flex-wrap gap-2 items-center">
+                                    <span id="alumno-nie" class="font-mono text-xs text-slate-500 font-bold"></span>
+                                    <span id="alumno-grado" class="text-slate-600 font-medium text-sm"></span>
+                                    <span id="alumno-especialidad" class="bg-emerald-50 text-emerald-800 font-bold text-xs px-2 py-0.5 rounded border border-emerald-200"></span>
+                                </div>
+                                <div class="mt-2 text-xs text-slate-500 font-mono">
+                                    <strong>Correo Institucional:</strong> <span id="alumno-correo" class="text-emerald-600 underline"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-4 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs font-mono">
+                                    <div>
+                                        <span class="text-gray-400 block text-[10px] uppercase font-semibold">Fecha y Hora</span>
+                                        <span id="registro-hora" class="text-gray-800 font-bold text-sm"></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 block text-[10px] uppercase font-semibold">Operación</span>
+                                        <span id="registro-tipo" class="font-bold text-sm uppercase"></span>
+                                    </div>
+                                </div>
+                                <div id="alerta-box" class="mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md shadow-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
+                    <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="list-ordered" class="text-emerald-600"></i> Bitácora Reciente ( <span id="contador-logs">0</span> )</h3>
+                    <div id="lista-historial" class="flex flex-col gap-3 overflow-y-auto max-h-[480px] pr-1 text-xs">
+                        <p id="historial-vacio" class="text-gray-400 italic text-center my-auto">Ningún registro en esta sesión.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="panel-usuarios" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-gray-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="users" class="text-emerald-600"></i> Base de Datos de Alumnos en Firebase</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-700 border-separate border-spacing-y-2">
+                        <thead>
+                            <tr class="text-xs uppercase text-slate-500">
+                                <th class="px-4 py-2">NIE / Código</th>
+                                <th class="px-4 py-2">Nombre del Alumno</th>
+                                <th class="px-4 py-2">Año</th>
+                                <th class="px-4 py-2">Especialidad / Sección</th>
+                                <th class="px-4 py-2">Correo Institucional</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Cargando alumnos desde Firebase...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="panel-reportes" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h3 class="text-gray-800 font-bold flex items-center gap-2"><i data-lucide="bar-chart-2" class="text-emerald-600"></i> Métricas de Asistencia Diaria</h3>
+                    <button onclick="imprimirReportePorSeccion()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer text-xs uppercase tracking-wide flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Imprimir reporte por sección
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase text-slate-500 font-semibold">Total Entradas</p>
+                        <p id="reporte-entradas" class="text-2xl font-bold text-emerald-600">0</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase text-slate-500 font-semibold">Total Salidas</p>
+                        <p id="reporte-salidas" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase text-slate-500 font-semibold">Total Alertas Horarias</p>
+                        <p id="reporte-alertas" class="text-2xl font-bold text-amber-600">0</p>
+                    </div>
+                </div>
+
+                <div id="preview-reporte-seccion" class="hidden mt-6 border border-slate-200 rounded-2xl bg-slate-50 p-4">
+                    <div class="no-print flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Vista previa del reporte</h4>
+                        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 rounded-xl text-xs uppercase tracking-wide cursor-pointer">
+                            Imprimir
+                        </button>
+                    </div>
+                    <div id="contenido-preview-reporte" class="bg-white rounded-xl border border-slate-200 p-4"></div>
+                </div>
+            </section>
+
+            <section id="panel-alertas" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h4 class="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="text-red-500"></i> Registro Histórico de Incidencias Horarias
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-700 border border-slate-200 rounded-xl">
+                        <tbody id="tabla-reporte-incidencias" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-4 text-center italic text-slate-400">Sin incidencias horarias registradas.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer class="bg-slate-900 text-slate-500 text-xs text-center py-3 border-t border-slate-800 mt-auto">
+            &copy; 2026 INTI - Sistema de Control Automatizado con Control de Roles.
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_AUTH_DOMAIN",
-            databaseURL: "TU_DATABASE_URL",
-            projectId: "TU_PROJECT_ID",
-            storageBucket: "TU_STORAGE_BUCKET",
-            messagingSenderId: "TU_MESSAGING_SENDER_ID",
-            appId: "TU_APP_ID"
+            apiKey: "AIzaSyCAPM41CCKo2H4eTXoWtFNR8g-RKCqqTm8",
+            authDomain: "sistema-de-control-ing-y-salid.firebaseapp.com",
+            databaseURL: "https://sistema-de-control-ing-y-salid-default-rtdb.firebaseio.com/",
+            projectId: "sistema-de-control-ing-y-salid",
+            storageBucket: "sistema-de-control-ing-y-salid.firebasestorage.app",
+            messagingSenderId: "426232560902",
+            appId: "1:426232560902:web:84d0e50454446beffe3287"
         };
 
-        // Inicializamos la conexión a Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const asistenciaRef = ref(db, 'asistencia'); // Nodo principal de base de datos
 
-        /* ==========================================================================
-           VARIABLES DE CONTROL DE FLUJO (PREVENCIÓN DE DUPLICADOS)
-           ========================================================================== */
-        let ultimoCodigoEscaneado = null;
-        let tiempoUltimoEscaneo = 0;
-        const COOLDOWN_TIEMPO = 5000; // 5 segundos de espera antes de volver a leer el mismo QR
+        window.buscarEstudianteEnFirebase = async function(nie) {
+            const dbRef = ref(db);
+            try {
+                const snapshot = await get(child(dbRef, `alumnos/${nie}`));
+                if (snapshot.exists()) return snapshot.val();
+                return null;
+            } catch (error) { return null; }
+        };
 
-        /* ==========================================================================
-           FUNCIÓN: MOSTRAR ALERTAS CENTRADAS Y TEMPORALES
-           ========================================================================== */
-        function mostrarAlerta(mensaje, tipo = 'success') {
-            const alerta = document.getElementById('alertaPersonalizada');
-            alerta.innerText = mensaje;
-            
-            // Quitamos clases previas y agregamos la nueva correspondiente
-            alerta.className = 'custom-alert';
-            if(tipo === 'success') alerta.classList.add('alert-success');
-            else alerta.classList.add('alert-error');
+        window.guardarEstudianteEnFirebase = async function(nie, datosAlumno) {
+            try {
+                await set(ref(db, `alumnos/${nie}`), datosAlumno);
+                return true;
+            } catch (error) { return false; }
+        };
 
-            alerta.style.display = 'block'; // Hacemos visible la alerta
+        window.registrarAccesoEnBitacoraFirebase = function(registro) {
+            const bitacoraRef = ref(db, 'bitacora');
+            push(bitacoraRef, registro).catch(err => console.error(err));
+        };
 
-            // Desaparece automáticamente después de 2.5 segundos sin intervención del usuario
-            setTimeout(() => {
-                alerta.style.display = 'none';
-            }, 2500);
+        onValue(ref(db, 'alumnos'), (snapshot) => {
+            const tabla = document.getElementById('tabla-usuarios');
+            if (!snapshot.exists()) {
+                tabla.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">No hay alumnos guardados aún.</td></tr>';
+                return;
+            }
+            tabla.innerHTML = '';
+            snapshot.forEach((childSnapshot) => {
+                const nie = childSnapshot.key;
+                const alum = childSnapshot.val();
+                tabla.innerHTML += `
+                    <tr class="bg-slate-50 border border-slate-200">
+                        <td class="px-4 py-2.5 font-bold font-mono text-slate-800">${nie}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-900">${alum.nombre}</td>
+                        <td class="px-4 py-2.5">${alum.grado}</td>
+                        <td class="px-4 py-2.5 text-xs font-semibold text-slate-600">${alum.especialidad}</td>
+                        <td class="px-4 py-2.5 font-mono text-xs text-blue-600">${alum.correo}</td>
+                    </tr>
+                `;
+            });
+        });
+    </script>
+
+    <script>
+        let historialAccesos = [];
+        let modoActivo = "ENTRADA";
+        let temporizadorAlerta;
+        let escaneoBloqueado = false;
+        let rolUsuarioActual = "";
+
+        function procesarLogin() {
+            const userIn = document.getElementById('login-usuario').value.trim().toLowerCase();
+            const passIn = document.getElementById('login-password').value;
+            const errorBox = document.getElementById('login-error');
+
+            errorBox.classList.add('hidden');
+
+            if (userIn === "director" && passIn === "director123") {
+                rolUsuarioActual = "director";
+                inicializarSesiónAutorizada();
+            } else if (userIn === "operador" && passIn === "operador123") {
+                rolUsuarioActual = "operador";
+                inicializarSesiónAutorizada();
+            } else {
+                errorBox.classList.remove('hidden');
+            }
         }
 
-        /* ==========================================================================
-           PROCESAMIENTO DEL CÓDIGO QR ESCANEADO
-           ========================================================================== */
-        function alDetectarQR(textoQR) {
-            const ahora = Date.now();
+        function inicializarSesiónAutorizada() {
+            document.getElementById('pantalla-login').classList.add('hidden');
+            document.getElementById('interfaz-sistema').classList.remove('hidden');
+
+            document.getElementById('sesion-rol-badge').innerText = rolUsuarioActual;
+            document.getElementById('sesion-rol-badge').className = rolUsuarioActual === "director"
+                ? "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-yellow-400 text-slate-900 uppercase"
+                : "text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white uppercase";
+
+            const elementosDirector = document.querySelectorAll('.VISTA-DIRECTOR');
+            elementosDirector.forEach(el => {
+                if (rolUsuarioActual === "operador") {
+                    el.classList.add('hidden');
+                } else {
+                    el.classList.remove('hidden');
+                }
+            });
+
+            mostrarPanel('inicio');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function cerrarSesion() {
+            rolUsuarioActual = "";
+            document.getElementById('login-usuario').value = "";
+            document.getElementById('login-password').value = "";
+            document.getElementById('interfaz-sistema').classList.add('hidden');
+            document.getElementById('pantalla-login').classList.remove('hidden');
+        }
+
+        function actualizarReloj() {
+            const ahora = new Date();
+            let horas = ahora.getHours();
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'PM' : 'AM';
+            horas = horas % 12;
+            horas = horas ? horas : 12;
+            document.getElementById('reloj-digital').innerText = `${String(horas).padStart(2, '0')}:${minutos}:${segundos} ${ampm}`;
+            document.getElementById('fecha-digital').innerText = ahora.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            actualizarReloj();
+            setInterval(actualizarReloj, 1000);
+
+            const inputPassword = document.getElementById('login-password');
+            if (inputPassword) {
+                inputPassword.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') procesarLogin();
+                });
+            }
 
             try {
-                // Parseamos los datos del QR (asumiendo formato JSON nativo de las credenciales)
-                const alumno = JSON.parse(textoQR);
-                
-                // Extraemos los campos requeridos del QR institucional
-                const codigo = alumno.code || alumno.codigo;
-                const nombre = alumno.name || alumno.nombre;
-                const especialidad = alumno.specialty || alumno.especialidad;
-                const year = alumno.year;
-                const email = alumno.email;
-
-                // VALIDACIÓN ANTIDUPLICADOS: Evita que un rebotador de cámara registre dos veces seguidas
-                if (codigo === ultimoCodigoEscaneado && (ahora - tiempoUltimoEscaneo) < COOLDOWN_TIEMPO) {
-                    console.log("Escaneo duplicado ignorado temporalmente.");
-                    return; 
+                if (typeof Html5QrcodeScanner !== 'undefined') {
+                    const scanner = new Html5QrcodeScanner('reader', { fps: 15, qrbox: 240 }, false);
+                    scanner.render((texto) => {
+                        if (!document.getElementById('interfaz-sistema').classList.contains('hidden')) {
+                            procesarNIE(texto.trim());
+                        }
+                    }, () => {});
                 }
-
-                // Actualizamos las variables de control con el último registro procesado con éxito
-                ultimoCodigoEscaneado = codigo;
-                tiempoUltimoEscaneo = ahora;
-
-                // Generamos la marca de tiempo legible de El Salvador
-                const opcionesFecha = { timeZone: 'America/San_Salvador', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-                const horaActual = new Date().toLocaleTimeString('es-SV', opcionesFecha);
-
-                // Construimos el objeto final que viajará hacia Firebase Realtime Database
-                const registroAsistencia = {
-                    codigo: codigo,
-                    nombre: nombre,
-                    especialidad: especialidad,
-                    year: year,
-                    email: email,
-                    timestamp: horaActual
-                };
-
-                // Subimos de forma persistente los datos a la nube
-                push(asistenciaRef, registroAsistencia)
-                    .then(() => {
-                        mostrarAlerta(`✅ Entrada Registrada: ${nombre}`, 'success');
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                        mostrarAlerta("❌ Error al guardar en la nube", 'error');
-                    });
-
             } catch (e) {
-                // Si el código QR no posee una estructura JSON válida, maneja la alerta de error
-                if (ahora - tiempoUltimoEscaneo > COOLDOWN_TIEMPO) {
-                    mostrarAlerta("❌ Código QR no reconocido por el sistema INTI", 'error');
-                    tiempoUltimoEscaneo = ahora;
+                console.error(e);
+            }
+
+            if (window.lucide) lucide.createIcons();
+        });
+
+        function cambiarModo(modo) {
+            modoActivo = modo;
+            document.getElementById('btn-entrada').className = modo === 'ENTRADA'
+                ? 'bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg border-b-4 border-emerald-800 transition-all cursor-pointer'
+                : 'bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer';
+            document.getElementById('btn-salida').className = modo === 'SALIDA'
+                ? 'bg-blue-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg border-b-4 border-blue-800 transition-all cursor-pointer'
+                : 'bg-slate-300 text-slate-600 font-bold py-3.5 px-6 rounded-2xl shadow-md border-b-4 border-slate-400 transition-all opacity-60 cursor-pointer';
+        }
+
+        function mostrarPanel(panel) {
+            if (rolUsuarioActual === 'operador' && panel === 'usuarios') {
+                panel = 'inicio';
+            }
+
+            ['inicio', 'usuarios', 'reportes', 'alertas'].forEach(p => {
+                const panelDoc = document.getElementById(`panel-${p}`);
+                const tabDoc = document.getElementById(`tab-${p}`);
+                if (panelDoc) panelDoc.classList.toggle('hidden', p !== panel);
+                if (tabDoc) tabDoc.className = p === panel
+                    ? 'px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm cursor-pointer'
+                    : 'px-4 py-2 rounded-2xl bg-slate-200 text-slate-700 font-semibold shadow-sm cursor-pointer';
+            });
+
+            if (rolUsuarioActual === 'operador') {
+                document.querySelectorAll('.VISTA-DIRECTOR').forEach(el => el.classList.add('hidden'));
+            }
+
+            if (panel === 'reportes' || panel === 'alertas') {
+                typeof actualizarReportes === 'function' && actualizarReportes();
+            }
+
+            try {
+                if (window.lucide) lucide.createIcons();
+            } catch (e) {}
+        }
+
+        function evaluarIncidenciaHoraria(tipoOperacion) {
+            const ahora = new Date();
+            const tiempoEnMinutos = (ahora.getHours() * 60) + ahora.getMinutes();
+            const horaLimiteEntrada = 7 * 60;
+            const horaOficialSalidaTarde = 16 * 60;
+
+            if (tipoOperacion === 'ENTRADA') {
+                if (tiempoEnMinutos > horaLimiteEntrada) return 'ENTRADA_TARDIA';
+            } else if (tipoOperacion === 'SALIDA') {
+                if (tiempoEnMinutos < horaOficialSalidaTarde) return 'SALIDA_ANTICIPADA';
+            }
+            return 'NORMAL';
+        }
+
+        async function procesarNIE(nie) {
+            if (!nie || escaneoBloqueado) return;
+
+            document.getElementById('modal-autoregistro').classList.add('hidden');
+
+            const alumno = await window.buscarEstudianteEnFirebase(nie);
+            if (alumno) {
+                escaneoBloqueado = true;
+                if (typeof ejecutarAsistencia === 'function') {
+                    ejecutarAsistencia(nie, alumno);
+                } else {
+                    console.log('Datos de asistencia listos para procesar:', nie, alumno);
                 }
+                setTimeout(() => { escaneoBloqueado = false; }, 3000);
+            } else {
+                document.getElementById('reg-nie').value = nie;
+                document.getElementById('reg-nombre').value = '';
+                document.getElementById('reg-especialidad').value = '';
+                document.getElementById('modal-autoregistro').classList.remove('hidden');
+                document.getElementById('reg-nombre').focus();
             }
         }
 
-        /* ==========================================================================
-           INICIALIZACIÓN DE LA CÁMARA LECTORA
-           ========================================================================== */
-        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-            fps: 15,          // Velocidad de lectura de fotogramas por segundo
-            qrbox: { width: 250, height: 250 } // Área visible de enfoque del escáner
-        });
-        
-        // Ejecutamos el inicio de captura del flujo de video
-        html5QrcodeScanner.render(alDetectarQR);
-
-        /* ==========================================================================
-           RENDERIZACIÓN DE REPORTES DESDE FIREBASE (TABLA EN TIEMPO REAL)
-           ========================================================================== */
-        onValue(asistenciaRef, (snapshot) => {
-            const cuerpoTabla = document.getElementById("cuerpoTabla");
-            cuerpoTabla.innerHTML = ""; // Limpieza total para redibujar evitando registros duplicados visuales
-
-            if (snapshot.exists()) {
-                const datos = snapshot.val();
-                
-                // Recorremos secuencialmente los identificadores de registros generados por push()
-                Object.keys(datos).forEach((id) => {
-                    const registro = datos[id];
-                    const fila = document.createElement("tr");
-                    
-                    fila.innerHTML = `
-                        <td><b>${registro.codigo || 'N/A'}</b></td>
-                        <td>${registro.nombre || 'N/A'}</td>
-                        <td>${registro.especialidad || 'N/A'}</td>
-                        <td>${registro.year || '-'}° Año</td>
-                        <td>${registro.timestamp || 'N/A'}</td>
-                    `;
-                    cuerpoTabla.appendChild(fila);
-                });
-            } else {
-                cuerpoTabla.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999;">Esperando primeros registros...</td></tr>`;
+        function procesarManual() {
+            const input = document.getElementById('input-id');
+            if (input.value.trim() !== '') {
+                escaneoBloqueado = false;
+                procesarNIE(input.value.trim());
+                input.value = '';
             }
-        });
+        }
 
-        /* ==========================================================================
-           FUNCIÓN ACCIONADORA: IMPRIMIR REPORTE
-           ========================================================================== */
-        window.imprimirReporte = function() {
-            // Dispara el controlador nativo del sistema operativo para impresión física o guardado en PDF
-            window.print();
-        };
+        function cancelarRegistro() {
+            document.getElementById('modal-autoregistro').classList.add('hidden');
+        }
+
+        async function guardarNuevoEstudianteBD() {
+            const nie = document.getElementById('reg-nie').value.trim();
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const grado = document.getElementById('reg-ano').value;
+            const specialtyInput = document.getElementById('reg-especialidad').value.trim();
+
+            if (!nombre || !specialtyInput) return;
+
+            const nuevoAlumno = {
+                nombre: nombre,
+                grado: grado,
+                especialidad: specialtyInput,
+                correo: `${nie}@inti.edu.sv`
+            };
+
+            const guardadoExitoso = await window.guardarEstudianteEnFirebase(nie, nuevoAlumno);
+
+            if (guardadoExitoso) {
+                document.getElementById('modal-autoregistro').classList.add('hidden');
+                escaneoBloqueado = true;
+                ejecutarAsistencia(nie, nuevoAlumno);
+                setTimeout(() => { escaneoBloqueado = false; }, 3000);
+            }
+        }
+
+        function ejecutarAsistencia(nie, estudiante) {
+            const divResultado = document.getElementById('detalle-resultado');
+            divResultado.classList.remove('hidden');
+
+            const ahora = new Date();
+            const horaString = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const fechaString = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            const estadoHorario = evaluarIncidenciaHoraria(modoActivo);
+            const esIncidencia = estadoHorario !== 'NORMAL';
+
+            const nuevoRegistro = {
+                fecha: fechaString,
+                hora: horaString,
+                tipo: modoActivo,
+                timestamp: Date.now(),
+                incidencia: estadoHorario,
+                codigoAlumno: nie,
+                nombre: estudiante.nombre,
+                especialidad: estudiante.especialidad,
+                grado: estudiante.grado,
+                correo: estudiante.correo
+            };
+
+            document.getElementById('badge-status').className = esIncidencia
+                ? 'text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 animate-pulse'
+                : 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800';
+            document.getElementById('badge-status').innerText = esIncidencia ? `AVISO: ${estadoHorario.replace('_', ' ')}` : 'VÁLIDO';
+            document.getElementById('alumno-nombre').innerText = estudiante.nombre;
+            document.getElementById('alumno-nie').innerText = `NIE: ${nie} | `;
+            document.getElementById('alumno-grado').innerText = estudiante.grado + ' - ';
+            document.getElementById('alumno-especialidad').innerText = estudiante.especialidad;
+            document.getElementById('alumno-correo').innerText = estudiante.correo;
+            document.getElementById('registro-hora').innerText = `${fechaString} | ${horaString}`;
+            document.getElementById('registro-tipo').innerText = modoActivo;
+            document.getElementById('registro-tipo').className = modoActivo === 'ENTRADA' ? 'text-emerald-600 font-bold' : 'text-blue-600 font-bold';
+
+            const alertaBox = document.getElementById('alerta-box');
+            if (estadoHorario === 'SALIDA_ANTICIPADA') {
+                alertaBox.className = 'mt-4 text-center font-black py-2.5 px-4 rounded-xl text-md bg-red-600 text-white shadow-md block';
+                alertaBox.innerText = '⚠️ ALERTA: SALIDA ANTES DE TIEMPO';
+                lanzarAlertaCentralAutomatica('SALIDA ANTICIPADA', estudiante.nombre, `Registró salida antes de tiempo a las ${horaString}`, 'text-red-600', 'bg-red-100');
+            } else if (estadoHorario === 'ENTRADA_TARDIA') {
+                alertaBox.className = 'mt-4 text-center font-black py-2.5 px-4 rounded-xl text-md bg-amber-500 text-white shadow-md block';
+                alertaBox.innerText = '⚠️ ATENCIÓN: ENTRADA TARDÍA';
+                lanzarAlertaCentralAutomatica('ENTRADA TARDÍA', estudiante.nombre, `Llegada retrasada registrada a las ${horaString}`, 'text-amber-600', 'bg-amber-100');
+            } else {
+                alertaBox.className = 'mt-4 text-center font-bold py-2.5 px-4 rounded-xl text-md bg-emerald-500 text-white block';
+                alertaBox.innerText = '✓ ACCESO AUTORIZADO';
+            }
+
+            historialAccesos.unshift(nuevoRegistro);
+            actualizarHistorialHTML();
+
+            if (typeof window.registrarAccesoEnBitacoraFirebase === 'function') {
+                window.registrarAccesoEnBitacoraFirebase(nuevoRegistro);
+            }
+        }
+
+        function lanzarAlertaCentralAutomatica(titulo, estudiante, detalles, colorTexto, colorIconoBg) {
+            clearTimeout(temporizadorAlerta);
+
+            const modal = document.getElementById('modal-alerta-central');
+            const iconoBox = document.getElementById('alerta-central-icono');
+            const txtTitulo = document.getElementById('alerta-central-titulo');
+            const txtEstudiante = document.getElementById('alerta-central-estudiante');
+            const txtDetalles = document.getElementById('alerta-central-detalles');
+
+            txtTitulo.innerText = titulo;
+            txtTitulo.className = `text-2xl font-black uppercase tracking-wide mb-1 ${colorTexto}`;
+            txtEstudiante.innerText = estudiante;
+            txtDetalles.innerText = detalles;
+
+            iconoBox.className = `w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 shadow-inner ${colorIconoBg} ${colorTexto}`;
+            iconoBox.innerHTML = titulo.includes('SALIDA')
+                ? '<i data-lucide="octagon-alert" class="w-9 h-9"></i>'
+                : '<i data-lucide="clock-alert" class="w-9 h-9"></i>';
+
+            if (window.lucide) lucide.createIcons();
+            modal.classList.remove('hidden');
+
+            temporizadorAlerta = setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 3000);
+        }
+
+        function actualizarHistorialHTML() {
+            const lista = document.getElementById('lista-historial');
+            document.getElementById('contador-logs').innerText = historialAccesos.length;
+            lista.innerHTML = '';
+
+            if (historialAccesos.length === 0) {
+                lista.innerHTML = '<p class="text-gray-400 italic text-center my-auto">Ningún registro en esta sesión.</p>';
+                return;
+            }
+
+            historialAccesos.forEach(reg => {
+                const colorBorde = reg.incidencia === 'SALIDA_ANTICIPADA'
+                    ? 'border-red-600 bg-red-50'
+                    : (reg.incidencia === 'ENTRADA_TARDIA'
+                        ? 'border-amber-500 bg-amber-50'
+                        : (reg.tipo === 'ENTRADA' ? 'border-emerald-500 bg-emerald-50' : 'border-blue-500 bg-blue-50'));
+                const badgeColor = reg.incidencia === 'SALIDA_ANTICIPADA'
+                    ? 'bg-red-200 text-red-900'
+                    : (reg.incidencia === 'ENTRADA_TARDIA'
+                        ? 'bg-amber-200 text-amber-900'
+                        : (reg.tipo === 'ENTRADA' ? 'bg-emerald-200 text-emerald-800' : 'bg-blue-200 text-blue-800'));
+
+                let textoTag = reg.tipo;
+                if (reg.incidencia === 'SALIDA_ANTICIPADA') textoTag = 'S. ANTICIPADA';
+                if (reg.incidencia === 'ENTRADA_TARDIA') textoTag = 'E. TARDÍA';
+
+                lista.innerHTML += `
+                    <div class="border-l-4 ${colorBorde} p-2.5 rounded-r-lg shadow-xs flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-gray-800">${reg.nombre}</p>
+                            <p class="text-slate-600 text-[10px] font-semibold">${reg.grado} · ${reg.especialidad}</p>
+                        </div>
+                        <div class="text-right flex flex-col items-end gap-1">
+                            <span class="font-mono font-bold text-gray-700">${reg.hora}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${badgeColor}">${textoTag}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function actualizarReportes() {
+            document.getElementById('reporte-entradas').innerText = historialAccesos.filter(r => r.tipo === 'ENTRADA').length;
+            document.getElementById('reporte-salidas').innerText = historialAccesos.filter(r => r.tipo === 'SALIDA').length;
+            document.getElementById('reporte-alertas').innerText = historialAccesos.filter(r => r.incidencia !== 'NORMAL').length;
+
+            const tablaReporte = document.getElementById('tabla-reporte-incidencias');
+            const listaIncidencias = historialAccesos.filter(r => r.incidencia !== 'NORMAL');
+
+            if (listaIncidencias.length === 0) {
+                tablaReporte.innerHTML = '<tr><td colspan="5" class="p-4 text-center italic text-slate-400">Sin incidencias hoy.</td></tr>';
+                return;
+            }
+
+            tablaReporte.innerHTML = '';
+            listaIncidencias.forEach(reg => {
+                const badg = reg.incidencia === 'SALIDA_ANTICIPADA'
+                    ? '<span class="bg-red-100 text-red-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">SALIDA PREMATURA</span>'
+                    : '<span class="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">ENTRADA TARDÍA</span>';
+
+                tablaReporte.innerHTML += `
+                    <tr class="hover:bg-slate-50 bg-white border-b transition-colors font-medium">
+                        <td class="p-3 font-mono font-bold text-slate-900">${reg.codigoAlumno}</td>
+                        <td class="p-3 text-slate-800 font-bold">${reg.nombre}</td>
+                        <td class="p-3 text-slate-600">${reg.grado} - ${reg.especialidad}</td>
+                        <td class="p-3 font-mono font-bold text-slate-600">${reg.hora}</td>
+                        <td class="p-3">${badg}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function imprimirReportePorSeccion() {
+            if (historialAccesos.length === 0) {
+                alert('No hay registros para imprimir.');
+                return;
+            }
+
+            const seccionesAgrupadas = historialAccesos.reduce((grupos, registro) => {
+                const nombreSeccion = `${registro.grado} - ${registro.especialidad}`;
+                if (!grupos[nombreSeccion]) grupos[nombreSeccion] = [];
+                grupos[nombreSeccion].push(registro);
+                return grupos;
+            }, {});
+
+            const previewBox = document.getElementById('preview-reporte-seccion');
+            const contenidoPreview = document.getElementById('contenido-preview-reporte');
+
+            let contenidoHTML = `
+                <div class="text-sm text-slate-700">
+                    <h3 class="text-lg font-black text-slate-900 mb-2">INSTITUTO NACIONAL TÉCNICO INDUSTRIAL</h3>
+                    <p class="mb-1">Reporte diario de asistencias por sección</p>
+                    <p class="mb-4 text-xs text-slate-500">Fecha: ${new Date().toLocaleDateString('es-ES')} · Registros: ${historialAccesos.length}</p>
+                </div>
+            `;
+
+            Object.entries(seccionesAgrupadas).forEach(([seccion, registros]) => {
+                contenidoHTML += `
+                    <div class="mb-5 border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800">SECCIÓN: ${seccion}</div>
+                        <table class="w-full text-left text-xs text-slate-700">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="px-3 py-2">NIE</th>
+                                    <th class="px-3 py-2">Nombre</th>
+                                    <th class="px-3 py-2">Hora</th>
+                                    <th class="px-3 py-2">Operación</th>
+                                    <th class="px-3 py-2">Condición</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                registros.forEach(reg => {
+                    let clase = 'bg-emerald-100 text-emerald-800';
+                    let etiqueta = 'ASISTENCIA NORMAL';
+                    if (reg.incidencia === 'ENTRADA_TARDIA') {
+                        clase = 'bg-amber-100 text-amber-800';
+                        etiqueta = 'ENTRADA TARDÍA';
+                    } else if (reg.incidencia === 'SALIDA_ANTICIPADA') {
+                        clase = 'bg-red-100 text-red-800';
+                        etiqueta = 'SALIDA ANTICIPADA';
+                    } else if (reg.tipo === 'SALIDA') {
+                        etiqueta = 'SALIDA REGULAR';
+                    }
+
+                    contenidoHTML += `
+                        <tr class="border-t border-slate-200">
+                            <td class="px-3 py-2 font-mono">${reg.codigoAlumno}</td>
+                            <td class="px-3 py-2">${reg.nombre}</td>
+                            <td class="px-3 py-2">${reg.hora}</td>
+                            <td class="px-3 py-2">${reg.tipo}</td>
+                            <td class="px-3 py-2"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${clase}">${etiqueta}</span></td>
+                        </tr>
+                    `;
+                });
+
+                contenidoHTML += `</tbody></table></div>`;
+            });
+
+            contenidoPreview.innerHTML = contenidoHTML;
+            previewBox.classList.remove('hidden');
+            previewBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     </script>
 </body>
 </html>
